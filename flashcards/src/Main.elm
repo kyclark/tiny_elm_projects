@@ -3,7 +3,7 @@ module Main exposing (Card, Model, Msg(..), init, main, update, view)
 import Browser
 import Debug
 import Html exposing (Html, button, div, form, h1, img, input, text)
-import Html.Attributes exposing (src)
+import Html.Attributes exposing (src, value)
 import Html.Events exposing (onClick, onInput)
 
 
@@ -15,6 +15,7 @@ type alias Model =
     { question : String
     , answer : String
     , cards : List Card
+    , hideCards : Bool
     }
 
 
@@ -29,6 +30,7 @@ initialModel =
     { question = ""
     , answer = ""
     , cards = []
+    , hideCards = False
     }
 
 
@@ -43,6 +45,7 @@ init =
 
 type Msg
     = AddCard
+    | ToggleHideCards
     | UpdateQuestion String
     | UpdateAnswer String
 
@@ -66,6 +69,9 @@ update msg model =
             , Cmd.none
             )
 
+        ToggleHideCards ->
+            ( { model | hideCards = not model.hideCards }, Cmd.none )
+
         UpdateQuestion newQuestion ->
             ( { model | question = newQuestion }, Cmd.none )
 
@@ -81,21 +87,21 @@ view : Model -> Html Msg
 view model =
     div []
         [ h1 [] [ text "Flashcards" ]
-        , inputForm
-        , viewCards model.cards
+        , createCard model
+        , viewCards model
         ]
 
 
-inputForm : Html Msg
-inputForm =
+createCard : Model -> Html Msg
+createCard model =
     div []
         [ div []
             [ text "Question: "
-            , input [ onInput UpdateQuestion ] []
+            , input [ onInput UpdateQuestion, value model.question ] []
             ]
         , div []
             [ text "Answer: "
-            , input [ onInput UpdateAnswer ] []
+            , input [ onInput UpdateAnswer, value model.answer ] []
             ]
         , div []
             [ button [ onClick AddCard ] [ text "Add" ]
@@ -103,21 +109,40 @@ inputForm =
         ]
 
 
-viewCards : List Card -> Html msg
-viewCards cards =
+viewCards : Model -> Html Msg
+viewCards model =
     let
         viewCard card =
             div []
                 [ div [] [ text ("Question: " ++ card.question) ]
                 , div [] [ text ("Answer: " ++ card.answer) ]
                 ]
-    in
-    case List.length cards of
-        0 ->
-            div [] [ text "No cards" ]
 
-        _ ->
-            div [] (List.map viewCard cards)
+        viewer =
+            case model.hideCards of
+                True ->
+                    div [] []
+
+                _ ->
+                    case List.length model.cards of
+                        0 ->
+                            div [] [ text "No cards" ]
+
+                        _ ->
+                            div [] (List.map viewCard model.cards)
+
+        hideShow =
+            case model.hideCards of
+                True ->
+                    "Show"
+
+                _ ->
+                    "Hide"
+    in
+    div []
+        [ div [] [ button [ onClick ToggleHideCards ] [ text hideShow ] ]
+        , viewer
+        ]
 
 
 
