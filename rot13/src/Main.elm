@@ -98,8 +98,19 @@ view model =
 encrypt : Model -> String
 encrypt model =
     let
-        upper =
-            String.toUpper model.message
+        numToStr =
+            Dict.fromList
+                [ ( '0', "ZERO" )
+                , ( '1', "ONE" )
+                , ( '2', "TWO" )
+                , ( '3', "THREE" )
+                , ( '4', "FOUR" )
+                , ( '5', "FIVE" )
+                , ( '6', "SIX" )
+                , ( '7', "SEVEN" )
+                , ( '8', "EIGHT" )
+                , ( '9', "NINE" )
+                ]
 
         rot13 =
             Dict.fromList
@@ -131,11 +142,25 @@ encrypt model =
                 , ( 'Z', "M" )
                 ]
 
+        upper =
+            String.toUpper model.message
+
+        convertNum char =
+            case Dict.get char numToStr of
+                Just str ->
+                    String.toList str
+
+                _ ->
+                    [ char ]
+
+        convertedNums =
+            List.concat (List.map convertNum (String.toList upper))
+
         newLetter letter =
             Dict.get letter rot13
 
         newLetters =
-            List.filterMap newLetter (String.toList upper)
+            List.filterMap newLetter convertedNums
 
         chunked =
             List.map (\c -> String.join "" c) <|
