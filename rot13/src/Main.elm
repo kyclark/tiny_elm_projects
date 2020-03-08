@@ -4,7 +4,7 @@ import Browser
 import Dict exposing (Dict)
 import Exts.List exposing (chunk)
 import Html exposing (Html, div, h1, img, input, table, td, text, tr)
-import Html.Attributes exposing (src)
+import Html.Attributes exposing (align, placeholder, size, src)
 import Html.Events exposing (onInput)
 
 
@@ -14,11 +14,13 @@ import Html.Events exposing (onInput)
 
 type alias Model =
     { message : String
+    , chunkSize : Int
     }
 
 
 initialModel =
     { message = ""
+    , chunkSize = 5
     }
 
 
@@ -33,6 +35,7 @@ init =
 
 type Msg
     = UpdateMessage String
+    | UpdateChunkSize String
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -41,10 +44,21 @@ update msg model =
         UpdateMessage newMessage ->
             ( { model | message = newMessage }, Cmd.none )
 
+        UpdateChunkSize newChunkSize ->
+            case String.toInt newChunkSize of
+                Just n ->
+                    case n > 0 of
+                        True ->
+                            ( { model | chunkSize = n }, Cmd.none )
+
+                        _ ->
+                            ( model, Cmd.none )
+
+                _ ->
+                    ( model, Cmd.none )
 
 
---_ ->
---    ( model, Cmd.none )
+
 ---- VIEW ----
 
 
@@ -54,26 +68,38 @@ view model =
         [ h1 [] [ text "Encryptobot" ]
         , table []
             [ tr []
-                [ td [] [ text "What is your secret message?" ]
-                , td [] [ input [ onInput UpdateMessage ] [] ]
+                [ td [ align "right" ] [ text "Secret message:" ]
+                , td
+                    [ align "left" ]
+                    [ input [ size 100, onInput UpdateMessage ] [] ]
                 ]
             , tr []
-                [ td [] [ text "Original message: " ]
-                , td [] [ text model.message ]
+                [ td [ align "right" ] [ text "Chunk size:" ]
+                , td [ align "left" ]
+                    [ input
+                        [ onInput UpdateChunkSize
+                        , placeholder (String.fromInt model.chunkSize)
+                        ]
+                        []
+                    ]
                 ]
             , tr []
-                [ td [] [ text "Encrypted message: " ]
-                , td [] [ text <| encrypt model.message ]
+                [ td [ align "right" ] [ text "Original message: " ]
+                , td [ align "left" ] [ text model.message ]
+                ]
+            , tr []
+                [ td [ align "right" ] [ text "Encrypted message: " ]
+                , td [ align "left" ] [ text <| encrypt model ]
                 ]
             ]
         ]
 
 
-encrypt : String -> String
-encrypt message =
+encrypt : Model -> String
+encrypt model =
     let
         upper =
-            String.toUpper message
+            String.toUpper model.message
 
         rot13 =
             Dict.fromList
@@ -106,20 +132,16 @@ encrypt message =
                 ]
 
         newLetter letter =
-            case Dict.get letter rot13 of
-                Just char ->
-                    char
-
-                _ ->
-                    ""
+            Dict.get letter rot13
 
         newLetters =
-            List.map newLetter (String.toList upper)
+            List.filterMap newLetter (String.toList upper)
 
         chunked =
-            chunk 5 newLetters
+            List.map (\c -> String.join "" c) <|
+                chunk model.chunkSize newLetters
     in
-    String.join "" (List.concat (List.intersperse [ " " ] chunked))
+    String.join " " chunked
 
 
 
