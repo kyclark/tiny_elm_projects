@@ -69,7 +69,7 @@ view model =
     in
     div []
         [ h1 [] [ text "Welcome to the Palindrome" ]
-        , div [] [ input [ onInput UpdateModel ] [] ]
+        , div [] [ text "Test this: ", input [ onInput UpdateModel ] [] ]
         , div [] [ text result ]
         ]
 

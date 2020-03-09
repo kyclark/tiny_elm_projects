@@ -2,9 +2,10 @@ module Main exposing (Model, Msg(..), init, main, update, view)
 
 import Browser
 import Debug
-import Html exposing (Html, button, div, h1, img, input, text)
-import Html.Attributes exposing (disabled, src)
+import Html exposing (Html, button, div, h1, img, input, li, text, ul)
+import Html.Attributes exposing (disabled, size, src, value)
 import Html.Events exposing (onClick, onInput)
+import Set exposing (Set)
 
 
 
@@ -19,20 +20,20 @@ type alias Model =
     , message : String
     , maxGuesses : Int
     , gameIsOver : Bool
-    , previousGuesses : List Char
+    , previousGuesses : Set String
     }
 
 
 initialModel : Model
 initialModel =
-    { word = ""
-    , isPlaying = False
+    { word = "garage"
+    , isPlaying = True
     , guess = ""
     , numGuesses = 0
     , message = ""
     , maxGuesses = 6
     , gameIsOver = False
-    , previousGuesses = []
+    , previousGuesses = Set.empty
     }
 
 
@@ -78,14 +79,36 @@ update msg model =
 
         UpdateGuess newGuess ->
             let
-                guess =
-                    if String.length newGuess == 1 then
-                        newGuess
+                _ =
+                    Debug.log "newGuess" newGuess
+
+                _ =
+                    Debug.log "model" model
+
+                --guess =
+                --    if String.length newGuess == 1 then
+                --        newGuess
+                --    else
+                --        model.guess
+                newMessage =
+                    if Set.member newGuess model.previousGuesses then
+                        "You already guessed \""
+                            ++ newGuess
+                            ++ "\""
 
                     else
-                        model.guess
+                        ""
+
+                newPrevious =
+                    Set.insert newGuess model.previousGuesses
             in
-            ( { model | guess = guess, message = "" }, Cmd.none )
+            ( { model
+                | guess = newGuess
+                , message = newMessage
+                , previousGuesses = newPrevious
+              }
+            , Cmd.none
+            )
 
         UpdateWord newWord ->
             ( { model | word = newWord }, Cmd.none )
@@ -97,16 +120,37 @@ update msg model =
 
 view : Model -> Html Msg
 view model =
-    let
-        _ =
-            Debug.log "model" model
-    in
+    --let
+    --    _ =
+    --        Debug.log "model" model
+    --in
     div []
         [ h1 [] [ text "Hangman" ]
         , inputWord model
         , gamePlay model
+        , showPreviousGuesses model.previousGuesses
         , div [] [ text model.message ]
         ]
+
+
+showPreviousGuesses : Set String -> Html Msg
+showPreviousGuesses guesses =
+    let
+        previousGuesses =
+            Set.toList guesses
+
+        mkGuess guess =
+            li [] [ text guess ]
+    in
+    case List.length previousGuesses of
+        0 ->
+            div [] []
+
+        _ ->
+            div []
+                [ text "Previous Guesses: "
+                , ul [] (List.map mkGuess previousGuesses)
+                ]
 
 
 gamePlay : Model -> Html Msg
@@ -123,8 +167,10 @@ gamePlay model =
                 [ div [] [ text ("Num Guesses: " ++ String.fromInt model.numGuesses) ]
                 , div [] [ img [ src ("/img/" ++ imgName) ] [] ]
                 , div [] [ text word ]
-                , input [ onInput UpdateGuess ] []
-                , button [ onClick Guess, disabled model.gameIsOver ] [ text "Guess" ]
+                , text "Type a letter to guess: "
+                , input [ size 1, onInput UpdateGuess ] []
+
+                --, button [ onClick Guess, disabled model.gameIsOver ] [ text "Guess" ]
                 ]
 
         game =
@@ -144,7 +190,8 @@ inputWord model =
 
     else
         div []
-            [ input [ onInput UpdateWord ] []
+            [ text "Give me a word to guess: "
+            , input [ onInput UpdateWord, value "" ] []
             , button [ onClick TogglePlaying ] [ text "Play" ]
             ]
 
