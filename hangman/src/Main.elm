@@ -13,10 +13,12 @@ import Set exposing (Set)
 
 
 type alias Model =
-    { word : String
+    { secretWord : String
+    , displayWord : String
     , isPlaying : Bool
     , guess : String
     , numGuesses : Int
+    , error : Maybe String
     , message : String
     , maxGuesses : Int
     , gameIsOver : Bool
@@ -26,10 +28,12 @@ type alias Model =
 
 initialModel : Model
 initialModel =
-    { word = "garage"
+    { secretWord = "garage"
+    , displayWord = "______"
     , isPlaying = True
     , guess = ""
     , numGuesses = 0
+    , error = Nothing
     , message = ""
     , maxGuesses = 6
     , gameIsOver = False
@@ -57,19 +61,62 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         Guess ->
-            ( { model
-                | numGuesses = model.numGuesses + 1
-                , message =
-                    if model.word == model.guess then
-                        "That's right!"
+            let
+                indexes =
+                    String.indexes model.guess model.secretWord
+
+                sub index =
+                    if List.member index indexes then
+                        String.slice index (index + 1) model.secretWord
 
                     else
-                        "Guess again, loser!"
-                , gameIsOver =
-                    model.word
-                        == model.guess
-                        || model.numGuesses
-                        == model.maxGuesses
+                        String.slice index (index + 1) model.displayWord
+
+                newDisplay =
+                    String.join "" <|
+                        List.map sub
+                            (List.range 0 (String.length model.secretWord - 1))
+
+                ( newMessage, guessInc ) =
+                    if Set.member model.guess model.previousGuesses then
+                        ( "You already guessed \""
+                            ++ model.guess
+                            ++ "\""
+                        , 0
+                        )
+
+                    else if List.length indexes > 0 then
+                        ( "Good guess!", 0 )
+
+                    else
+                        ( "Guess again, loser!", 1 )
+
+                newPreviousGuesses =
+                    Set.insert model.guess model.previousGuesses
+
+                newNumGuesses =
+                    model.numGuesses + guessInc
+
+                noBlanks =
+                    not (String.contains "_" newDisplay)
+
+                hitMaxGuesses =
+                    newNumGuesses == model.maxGuesses
+
+                newGameIsOver =
+                    case ( noBlanks, hitMaxGuesses ) of
+                        ( True, True ) ->
+                            True
+
+                        _ ->
+                            False
+            in
+            ( { model
+                | numGuesses = newNumGuesses
+                , message = newMessage
+                , displayWord = newDisplay
+                , gameIsOver = newGameIsOver
+                , previousGuesses = newPreviousGuesses
               }
             , Cmd.none
             )
@@ -77,41 +124,29 @@ update msg model =
         TogglePlaying ->
             ( { model | isPlaying = not model.isPlaying }, Cmd.none )
 
-        UpdateGuess newGuess ->
+        UpdateGuess guess ->
             let
-                _ =
-                    Debug.log "newGuess" newGuess
-
-                _ =
-                    Debug.log "model" model
-
-                --guess =
-                --    if String.length newGuess == 1 then
-                --        newGuess
-                --    else
-                --        model.guess
-                newMessage =
-                    if Set.member newGuess model.previousGuesses then
-                        "You already guessed \""
-                            ++ newGuess
-                            ++ "\""
+                ( newGuess, newError ) =
+                    if String.length guess /= 1 then
+                        ( model.guess, Just "Guess must be one character" )
 
                     else
-                        ""
-
-                newPrevious =
-                    Set.insert newGuess model.previousGuesses
+                        ( guess, Nothing )
             in
             ( { model
                 | guess = newGuess
-                , message = newMessage
-                , previousGuesses = newPrevious
+                , error = newError
               }
             , Cmd.none
             )
 
         UpdateWord newWord ->
-            ( { model | word = newWord }, Cmd.none )
+            ( { model
+                | secretWord = newWord
+                , displayWord = String.repeat (String.length newWord) "_"
+              }
+            , Cmd.none
+            )
 
 
 
@@ -120,10 +155,6 @@ update msg model =
 
 view : Model -> Html Msg
 view model =
-    --let
-    --    _ =
-    --        Debug.log "model" model
-    --in
     div []
         [ h1 [] [ text "Hangman" ]
         , inputWord model
@@ -133,44 +164,53 @@ view model =
         ]
 
 
-showPreviousGuesses : Set String -> Html Msg
+showPreviousGuesses : Set String -> Html msg
 showPreviousGuesses guesses =
-    let
-        previousGuesses =
-            Set.toList guesses
-
-        mkGuess guess =
-            li [] [ text guess ]
-    in
-    case List.length previousGuesses of
-        0 ->
+    case Set.isEmpty guesses of
+        True ->
             div [] []
 
         _ ->
             div []
                 [ text "Previous Guesses: "
-                , ul [] (List.map mkGuess previousGuesses)
+                , text <| String.join ", " <| Set.toList guesses
                 ]
 
 
 gamePlay : Model -> Html Msg
 gamePlay model =
     let
-        word =
-            String.repeat (String.length model.word) " _ "
-
         imgName =
             "hangman" ++ String.fromInt model.numGuesses ++ ".png"
 
+        canGuess =
+            case ( model.error, String.length model.guess, model.gameIsOver ) of
+                ( Nothing, 1, False ) ->
+                    True
+
+                _ ->
+                    False
+
+        displayWord =
+            String.join " " <|
+                List.map String.fromChar <|
+                    String.toList model.displayWord
+
         base =
             div []
-                [ div [] [ text ("Num Guesses: " ++ String.fromInt model.numGuesses) ]
+                [ div []
+                    [ text
+                        ("Num Guesses: "
+                            ++ String.fromInt model.numGuesses
+                        )
+                    ]
                 , div [] [ img [ src ("/img/" ++ imgName) ] [] ]
-                , div [] [ text word ]
+                , div [] [ text displayWord ]
                 , text "Type a letter to guess: "
                 , input [ size 1, onInput UpdateGuess ] []
-
-                --, button [ onClick Guess, disabled model.gameIsOver ] [ text "Guess" ]
+                , button
+                    [ onClick Guess, disabled (not canGuess) ]
+                    [ text "Guess" ]
                 ]
 
         game =
