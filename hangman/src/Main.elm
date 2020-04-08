@@ -77,8 +77,14 @@ update msg model =
                         List.map sub
                             (List.range 0 (String.length model.secretWord - 1))
 
+                noBlanks =
+                    not (String.contains "_" newDisplay)
+
                 ( newMessage, guessInc ) =
-                    if Set.member model.guess model.previousGuesses then
+                    if noBlanks then
+                        ( "Game over, man!", 0 )
+
+                    else if Set.member model.guess model.previousGuesses then
                         ( "You already guessed \""
                             ++ model.guess
                             ++ "\""
@@ -96,26 +102,12 @@ update msg model =
 
                 newNumGuesses =
                     model.numGuesses + guessInc
-
-                noBlanks =
-                    not (String.contains "_" newDisplay)
-
-                hitMaxGuesses =
-                    newNumGuesses == model.maxGuesses
-
-                newGameIsOver =
-                    case ( noBlanks, hitMaxGuesses ) of
-                        ( True, True ) ->
-                            True
-
-                        _ ->
-                            False
             in
             ( { model
                 | numGuesses = newNumGuesses
                 , message = newMessage
                 , displayWord = newDisplay
-                , gameIsOver = newGameIsOver
+                , gameIsOver = noBlanks
                 , previousGuesses = newPreviousGuesses
               }
             , Cmd.none
