@@ -3,8 +3,8 @@ module Main exposing (Model, Msg(..), init, initialModel, main, update, view)
 import Browser
 import Dict exposing (Dict)
 import Exts.List exposing (chunk)
-import Html exposing (Html, div, h1, img, input, table, td, text, tr)
-import Html.Attributes exposing (align, placeholder, size, src)
+import Html exposing (Html, div, h1, img, input, table, td, text, textarea, tr)
+import Html.Attributes exposing (align, cols, placeholder, rows, size, src)
 import Html.Events exposing (onInput)
 
 
@@ -71,7 +71,7 @@ view model =
                 [ td [ align "right" ] [ text "Secret message:" ]
                 , td
                     [ align "left" ]
-                    [ input [ size 100, onInput UpdateMessage ] [] ]
+                    [ textarea [ cols 50, rows 20, onInput UpdateMessage ] [] ]
                 ]
             , tr []
                 [ td [ align "right" ] [ text "Chunk size:" ]
