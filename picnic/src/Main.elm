@@ -1,7 +1,7 @@
 module Main exposing (Model, Msg(..), init, main, update, view)
 
 import Browser
-import Html exposing (Html, button, div, h1, img, input, text)
+import Html exposing (Html, button, div, h1, img, input, li, ol, text)
 import Html.Attributes exposing (src)
 import Html.Events exposing (onClick, onInput)
 
@@ -60,13 +60,18 @@ view model =
         stringIt vals =
             String.join " " vals
 
-        viewItems =
+        itemList =
             case List.length model.items of
                 0 ->
                     ""
 
                 1 ->
-                    stringIt model.items
+                    case List.head model.items of
+                        Just item ->
+                            item
+
+                        _ ->
+                            ""
 
                 2 ->
                     String.join " " <| List.intersperse " and " model.items
@@ -86,16 +91,32 @@ view model =
                         List.intersperse ", " <|
                             firstItems
                                 ++ [ stringIt [ "and ", stringIt lastItem ] ]
+
+        itemSummary =
+            case String.length itemList of
+                0 ->
+                    "Our basket is empty!"
+
+                _ ->
+                    "We'll take " ++ itemList ++ "."
+
+        itemBullets =
+            case List.length model.items of
+                0 ->
+                    text ""
+
+                _ ->
+                    ol [] (List.map (\val -> li [] [ text val ]) model.items)
     in
     div []
         [ h1 [] [ text "Picnic" ]
-        , div [] [ text "We're going on a picnic!" ]
         , div []
-            [ text "Let's take: "
+            [ text "New item: "
             , input [ onInput UpdateCurrentItem ] []
             , button [ onClick AddCurrentItem ] [ text "Add" ]
             ]
-        , text viewItems
+        , div [] [ text <| "We're going on a picnic. " ++ itemSummary ]
+        , itemBullets
         ]
 
 
