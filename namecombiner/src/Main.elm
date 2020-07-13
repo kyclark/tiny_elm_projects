@@ -70,22 +70,19 @@ view model =
             case ( model.name1, model.name2 ) of
                 ( Just n1, Just n2 ) ->
                     let
-                        start1 =
-                            starts n1
-
-                        end2 =
-                            ends n2
-
                         cross1 =
-                            cartesianProduct [ start1, end2 ]
+                            cartesianProduct [ starts n1, ends n2 ]
+
+                        cross2 =
+                            cartesianProduct [ starts n2, ends n1 ]
 
                         join xs =
                             String.join "-" xs
                     in
-                    List.map join cross1
+                    List.map join <| List.concat [ cross1, cross2 ]
 
                 _ ->
-                    [ "Nothing here" ]
+                    [ "Enter two names" ]
 
         showName name =
             case name of
@@ -100,10 +97,6 @@ view model =
         , div []
             [ input [ placeholder "Name1", onInput SetName1 ] []
             , input [ placeholder "Name2", onInput SetName2 ] []
-            ]
-        , div []
-            [ text (showName model.name1)
-            , text (showName model.name2)
             ]
         , div [] <|
             List.map
@@ -123,16 +116,10 @@ ends word =
         end =
             String.length word
     in
-    List.map (\n -> String.slice n end word) <|
-        List.range 0 (String.length word)
+    List.map (\n -> String.slice n end word) <| List.range 0 (end - 1)
 
 
 
---combine name1 name2 =
---    let
---        start = ""
---    in
---        ""
 ---- PROGRAM ----
 
 
