@@ -5,7 +5,7 @@ import Dict
 import Html exposing (Html, br, div, h1, input, text)
 import Html.Attributes exposing (src)
 import Html.Events exposing (onInput)
-import Roman exposing (toArabic, toRoman)
+import Roman exposing (arabicToRoman, romanToArabic)
 
 
 

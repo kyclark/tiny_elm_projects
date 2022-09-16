@@ -1,9 +1,11 @@
 module Main exposing (..)
 
+import Bootstrap.CDN as CDN
+import Bootstrap.Grid as Grid
 import Browser
 import Debug
 import Html exposing (Html, a, br, div, h1, img, table, td, text, tr)
-import Html.Attributes exposing (src)
+import Html.Attributes exposing (src, style)
 import Html.Events exposing (onClick)
 import Set
 
@@ -200,8 +202,9 @@ view model =
                 _ ->
                     ( "No winner", text "" )
     in
-    div []
-        [ h1 [] [ text "Tic Tac Toe" ]
+    Grid.container []
+        [ CDN.stylesheet
+        , h1 [] [ text "Tic Tac Toe" ]
         , text
             ("X Wins: "
                 ++ String.fromInt model.numWinsX
@@ -215,7 +218,7 @@ view model =
         , br [] []
         , reset
         , br [] []
-        , board model
+        , viewBoard model
         ]
 
 
@@ -229,8 +232,8 @@ playerName player =
             "O"
 
 
-board : Model -> Html Msg
-board model =
+viewBoard : Model -> Html Msg
+viewBoard model =
     let
         cells =
             model.cells
@@ -248,7 +251,7 @@ board model =
                         Nothing ->
                             a [ onClick (Take cell.num) ] [ text cell.num ]
     in
-    table []
+    table [ style "width" "250px" ]
         [ tr []
             [ td [] [ displayCell cells.one ]
             , td [] [ displayCell cells.two ]

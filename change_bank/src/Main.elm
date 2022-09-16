@@ -1,10 +1,10 @@
 module Main exposing (..)
 
 import Browser
+import Coins exposing (expand, makeChange, numberAgree)
 import Html exposing (Html, br, div, h1, img, input, li, text, ul)
 import Html.Attributes exposing (src)
 import Html.Events exposing (onInput)
-import List.Extra exposing (cartesianProduct)
 import Maybe exposing (Maybe, withDefault)
 
 
@@ -15,14 +15,6 @@ import Maybe exposing (Maybe, withDefault)
 type alias Model =
     { amount : Maybe Int
     , error : Maybe String
-    }
-
-
-type alias CoinGroup =
-    { pennies : Int
-    , nickels : Int
-    , dimes : Int
-    , quarters : Int
     }
 
 
@@ -50,20 +42,20 @@ update msg model =
                             ( Nothing, Nothing )
 
                         _ ->
-                            case String.toFloat amount of
+                            case String.toInt amount of
                                 Just n ->
                                     if n < 0 then
                                         ( Nothing
-                                        , Just "Amount must be > $0.00"
+                                        , Just "Amount must be > 0"
                                         )
 
-                                    else if n > 1 then
+                                    else if n > 100 then
                                         ( Nothing
-                                        , Just "Amount must be <= $1.00"
+                                        , Just "Amount must be <= 100"
                                         )
 
                                     else
-                                        ( Just (round (n * 100)), Nothing )
+                                        ( Just n, Nothing )
 
                                 _ ->
                                     ( Nothing, Just "That is not a number" )
@@ -78,81 +70,16 @@ update msg model =
 view : Model -> Html Msg
 view model =
     let
-        expand coinGroup =
-            let
-                pennies =
-                    if coinGroup.pennies > 0 then
-                        let
-                            noun =
-                                if coinGroup.pennies == 1 then
-                                    " penny"
+        mkLi coinGroup =
+            li [] [ text (expand coinGroup) ]
 
-                                else
-                                    " pennies"
-                        in
-                        Just (String.fromInt coinGroup.pennies ++ noun)
-
-                    else
-                        Nothing
-
-                nickels =
-                    if coinGroup.nickels > 0 then
-                        let
-                            noun =
-                                if coinGroup.nickels == 1 then
-                                    " nickel"
-
-                                else
-                                    " nickels"
-                        in
-                        Just (String.fromInt coinGroup.nickels ++ noun)
-
-                    else
-                        Nothing
-
-                dimes =
-                    if coinGroup.dimes > 0 then
-                        let
-                            noun =
-                                if coinGroup.dimes == 1 then
-                                    " dime"
-
-                                else
-                                    " dimes"
-                        in
-                        Just (String.fromInt coinGroup.dimes ++ noun)
-
-                    else
-                        Nothing
-
-                quarters =
-                    if coinGroup.quarters > 0 then
-                        let
-                            noun =
-                                if coinGroup.quarters == 1 then
-                                    " quarter"
-
-                                else
-                                    " quarters"
-                        in
-                        Just (String.fromInt coinGroup.quarters ++ noun)
-
-                    else
-                        Nothing
-            in
-            String.join ", " <|
-                List.filterMap identity [ pennies, nickels, dimes, quarters ]
-
-        mkLi item =
-            li [] [ text (expand item) ]
-
-        mkUl items =
-            case List.length items of
+        mkUl coinGroups =
+            case List.length coinGroups of
                 0 ->
                     text ""
 
                 _ ->
-                    ul [] (List.map mkLi items)
+                    ul [] (List.map mkLi coinGroups)
 
         groups =
             case model.amount of
@@ -164,55 +91,12 @@ view model =
     in
     div []
         [ h1 [] [ text "First Bank of Change" ]
-        , text "Enter a value between $0.00 and $1.00: "
+        , text "Enter a value between 0 and 100: "
         , input [ onInput SetAmount ] []
         , br [] []
         , text (withDefault "" model.error)
         , groups
         ]
-
-
-makeChange : Int -> List CoinGroup
-makeChange amount =
-    let
-        nickels =
-            amount // 5
-
-        dimes =
-            amount // 10
-
-        quarters =
-            amount // 25
-
-        combos =
-            cartesianProduct
-                [ List.range 0 nickels
-                , List.range 0 dimes
-                , List.range 0 quarters
-                ]
-
-        figure combo =
-            case combo of
-                [ n, d, q ] ->
-                    let
-                        bigCoins =
-                            List.sum [ 5 * n, 10 * d, 25 * q ]
-                    in
-                    if bigCoins <= amount then
-                        Just
-                            { quarters = q
-                            , dimes = d
-                            , nickels = n
-                            , pennies = amount - bigCoins
-                            }
-
-                    else
-                        Nothing
-
-                _ ->
-                    Nothing
-    in
-    List.filterMap figure combos
 
 
 

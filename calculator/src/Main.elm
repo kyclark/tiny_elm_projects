@@ -1,5 +1,7 @@
 module Main exposing (..)
 
+import Bootstrap.CDN as CDN
+import Bootstrap.Grid as Grid
 import Browser
 import Html exposing (Html, br, button, div, h1, img, input, option, table, td, text, tr)
 import Html.Attributes exposing (colspan, src, value)
@@ -124,8 +126,9 @@ update msg model =
 
 view : Model -> Html Msg
 view model =
-    div []
-        [ table []
+    Grid.container []
+        [ CDN.stylesheet
+        , table []
             [ tr []
                 [ td [] [ button [ onClick (SetInput "1") ] [ text "1" ] ]
                 , td [] [ button [ onClick (SetInput "2") ] [ text "2" ] ]

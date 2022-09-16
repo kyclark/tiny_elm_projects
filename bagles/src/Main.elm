@@ -1,14 +1,13 @@
 module Main exposing (..)
 
+import Bagles exposing (bagles)
+import Bootstrap.CDN as CDN
+import Bootstrap.Grid as Grid
 import Browser
 import Html exposing (Html, br, button, div, h1, img, input, text)
 import Html.Attributes exposing (disabled, src)
 import Html.Events exposing (onClick, onInput)
-import List.Extra exposing (getAt)
-import Maybe
-import Maybe.Extra exposing (isNothing)
 import Random
-import Result.Extra exposing (isOk)
 
 
 
@@ -21,7 +20,7 @@ type alias Model =
     , guess : String
     , numGuesses : Int
     , hasWon : Bool
-    , status : String
+    , message : String
     , numWins : Int
     }
 
@@ -32,7 +31,7 @@ initialModel =
     , guess = ""
     , numGuesses = 0
     , hasWon = False
-    , status = ""
+    , message = ""
     , numWins = 0
     }
 
@@ -63,28 +62,26 @@ update msg model =
     case msg of
         Evaluate ->
             let
-                result =
-                    bagles model.secret model.guess
+                ( hasWon, newMessage ) =
+                    case bagles model.secret model.guess of
+                        Ok message ->
+                            ( True, message )
 
-                ( hasWon, newStatus ) =
-                    case result of
-                        Ok s ->
-                            ( True, s )
-
-                        Err s ->
-                            ( False, s )
+                        Err message ->
+                            ( False, message )
 
                 numWins =
-                    case hasWon of
-                        True ->
-                            model.numWins + 1
+                    model.numWins
+                        + (if hasWon then
+                            1
 
-                        _ ->
-                            model.numWins
+                           else
+                            0
+                          )
             in
             ( { model
                 | hasWon = hasWon
-                , status = newStatus
+                , message = newMessage
                 , numWins = numWins
                 , numGuesses = model.numGuesses + 1
               }
@@ -111,11 +108,11 @@ update msg model =
 
 view : Model -> Html Msg
 view model =
-    div []
-        [ h1 [] [ text "Bagles" ]
-
-        --, text <| "Secret: " ++ model.secret
-        --, br [] []
+    Grid.container []
+        [ CDN.stylesheet
+        , h1 [] [ text "Bagles (Guess a 3-digit number)" ]
+        , text model.secret
+        , br [] []
         , text <| "Num Guesses: " ++ String.fromInt model.numGuesses
         , br [] []
         , text <| "Num Wins: " ++ String.fromInt model.numWins
@@ -132,53 +129,13 @@ view model =
             ]
             [ text "New Game" ]
         , br [] []
-        , text model.status
+        , text model.message
+
+        -- , br [] []
+        --, text <|
+        --    "PICO = no hits, PICO = right number/wrong place, "
+        --        ++ "FERMI = right number/place"
         ]
-
-
-bagles : String -> String -> Result String String
-bagles secret guess =
-    let
-        secretChars =
-            String.toList secret
-
-        guessChars =
-            List.map2 Tuple.pair
-                (List.range 0 2)
-                (String.toList guess)
-
-        results =
-            List.map
-                (\( pos, char ) -> compare char pos secretChars)
-                guessChars
-
-        display =
-            if List.all isNothing results then
-                "BAGLES"
-
-            else
-                String.trim <|
-                    String.join " "
-                        (List.map (Maybe.withDefault "") results)
-    in
-    case secret == guess of
-        True ->
-            Ok "You guessed it!"
-
-        _ ->
-            Err display
-
-
-compare : Char -> Int -> List Char -> Maybe String
-compare char pos secret =
-    if getAt pos secret == Just char then
-        Just "FERMI"
-
-    else if List.member char secret then
-        Just "PICO"
-
-    else
-        Nothing
 
 
 

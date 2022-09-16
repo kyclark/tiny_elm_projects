@@ -1,4 +1,4 @@
-module Main exposing (Model, Msg(..), Slot(..), SlotNum, defaultNumberOfFrogs, handleClick, init, initialModel, leftFrogLeap, main, numberOption, rangeOfFrogs, rightFrogLeap, subscriptions, update, view, viewSlot, viewSlots, wonYet)
+module Main exposing (Model, Msg(..), Slot(..), SlotNum, handleClick, init, initialModel, leftFrogLeap, main, rangeOfFrogs, rightFrogLeap, subscriptions, update, view, viewSlot, viewSlots, wonYet)
 
 import Browser
 import Browser.Navigation as Nav
@@ -22,20 +22,25 @@ type alias SlotNum =
 
 
 type Msg
-    = SlotClick SlotNum
+    = Reset
+    | SlotClick SlotNum
     | Undo
-    | Reset
     | ChangeNumberOfFrogs String
 
 
 type alias Model =
     { slots : List Slot
     , goal : List Slot
-    , msg : String
+    , message : String
     , previousStates : List (List Slot)
     , numberOfMoves : Int
     , numberOfFrogs : Int
     }
+
+
+init : flags -> ( Model, Cmd Msg )
+init flags =
+    ( initialModel 3, Cmd.none )
 
 
 initialModel : Int -> Model
@@ -47,30 +52,17 @@ initialModel numberOfFrogs =
                 ++ List.repeat numberOfFrogs RightFrog
     in
     { slots = slots
-    , msg =
-        "Click on a frog to make it move. Frogs can only "
-            ++ "move in the direction they are facing and only to an "
-            ++ "adjacent open space or over another frog to the space."
+    , goal = List.reverse slots
+    , message = "Click on a frog to make it move."
     , previousStates = []
     , numberOfMoves = 0
     , numberOfFrogs = numberOfFrogs
-    , goal = List.reverse slots
     }
 
 
 rangeOfFrogs : List Int
 rangeOfFrogs =
     List.range 3 6
-
-
-defaultNumberOfFrogs : Int
-defaultNumberOfFrogs =
-    3
-
-
-init : flags -> ( Model, Cmd Msg )
-init flags =
-    ( initialModel defaultNumberOfFrogs, Cmd.none )
 
 
 main : Program () Model Msg
@@ -83,25 +75,28 @@ main =
         }
 
 
-numberOption : Int -> Html msg
-numberOption n =
-    let
-        v =
-            String.fromInt n
-    in
-    option [ value v ] [ text v ]
-
-
 view : Model -> Html Msg
 view model =
+    let
+        numberOption n =
+            let
+                v =
+                    String.fromInt n
+            in
+            option [ value v ] [ text v ]
+    in
     div []
         [ div [] [ viewSlots model.slots ]
-        , div [] [ text model.msg ]
+        , div [] [ text model.message ]
         , div []
             [ text "Number of frogs: "
-            , select [ onInput ChangeNumberOfFrogs ] (List.map numberOption (List.range 3 5))
+            , select [ onInput ChangeNumberOfFrogs ]
+                (List.map numberOption (List.range 3 5))
             ]
-        , div [] [ text ("Number of moves: " ++ String.fromInt model.numberOfMoves) ]
+        , div []
+            [ text
+                ("Number of moves: " ++ String.fromInt model.numberOfMoves)
+            ]
         , div []
             [ button [ onClick Undo ] [ text "Undo" ]
             , button [ onClick Reset ] [ text "Reset" ]
@@ -130,31 +125,20 @@ viewSlots slots =
 viewSlot : SlotNum -> Slot -> Html Msg
 viewSlot index slot =
     let
-        imgName =
+        ( imgName, altText ) =
             case slot of
                 LeftFrog ->
-                    "left-frog.png"
+                    ( "./img/left-frog.png", "Left" )
 
                 RightFrog ->
-                    "right-frog.png"
+                    ( "./img/right-frog.png", "Right" )
 
                 Space ->
-                    "space.png"
-
-        altText =
-            case slot of
-                LeftFrog ->
-                    "Left"
-
-                RightFrog ->
-                    "Right"
-
-                Space ->
-                    "Space"
+                    ( "./img/space.png", "Space" )
     in
     td []
         [ img
-            [ src ("./img/" ++ imgName)
+            [ src imgName
             , alt altText
             , onClick (SlotClick index)
             ]
@@ -179,10 +163,6 @@ leftFrogLeap slots =
 
 
 rightFrogLeap slots =
-    let
-        foo =
-            Debug.log "slots" slots
-    in
     case slots of
         x :: Space :: y :: [] ->
             [ x, y, Space ]
@@ -243,7 +223,10 @@ handleClick index slots =
                                         ( x, y ) =
                                             List.Extra.splitAt twoBefore slots
                                     in
-                                    ( x, List.take window y, List.drop window y )
+                                    ( x
+                                    , List.take window y
+                                    , List.drop window y
+                                    )
 
                         _ ->
                             ( [], [], [] )
@@ -279,33 +262,29 @@ update msg model =
     case msg of
         ChangeNumberOfFrogs n ->
             case String.toInt n of
-                Just i ->
+                Just newNumber ->
                     let
                         min =
-                            case List.head rangeOfFrogs of
-                                Just x ->
-                                    x
-
-                                _ ->
-                                    0
+                            Maybe.withDefault 0 <| List.head rangeOfFrogs
 
                         max =
-                            case List.head (List.reverse rangeOfFrogs) of
-                                Just x ->
-                                    x
-
-                                _ ->
-                                    0
+                            Maybe.withDefault 0 <|
+                                List.head (List.reverse rangeOfFrogs)
                     in
-                    case ( i >= min, i <= max ) of
-                        ( True, True ) ->
-                            ( initialModel i, Cmd.none )
+                    if newNumber >= min && newNumber <= max then
+                        ( initialModel newNumber, Cmd.none )
 
-                        _ ->
-                            ( { model | msg = "Not a good number of frogs." }, Cmd.none )
+                    else
+                        ( { model | message = "Not a good number of frogs." }
+                        , Cmd.none
+                        )
 
                 Nothing ->
-                    ( { model | msg = "Cannot convert " ++ n ++ " an integer" }, Cmd.none )
+                    ( { model
+                        | message = "Cannot convert " ++ n ++ " an integer"
+                      }
+                    , Cmd.none
+                    )
 
         Reset ->
             let
@@ -317,21 +296,6 @@ update msg model =
               }
             , Cmd.none
             )
-
-        Undo ->
-            case List.length model.previousStates of
-                0 ->
-                    ( { model | msg = "No previous state" }, Cmd.none )
-
-                _ ->
-                    ( { model
-                        | slots = List.concat <| List.take 1 model.previousStates
-                        , previousStates = List.drop 1 model.previousStates
-                        , msg = "Undo"
-                        , numberOfMoves = model.numberOfMoves + 1
-                      }
-                    , Cmd.none
-                    )
 
         SlotClick index ->
             let
@@ -348,12 +312,27 @@ update msg model =
             in
             ( { model
                 | slots = newSlots
-                , msg = newMessage
+                , message = newMessage
                 , previousStates = model.slots :: model.previousStates
                 , numberOfMoves = model.numberOfMoves + 1
               }
             , Cmd.none
             )
+
+        Undo ->
+            case List.length model.previousStates of
+                0 ->
+                    ( { model | message = "No previous state" }, Cmd.none )
+
+                _ ->
+                    ( { model
+                        | slots = List.concat <| List.take 1 model.previousStates
+                        , previousStates = List.drop 1 model.previousStates
+                        , message = "Undo"
+                        , numberOfMoves = model.numberOfMoves + 1
+                      }
+                    , Cmd.none
+                    )
 
 
 

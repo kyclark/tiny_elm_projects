@@ -1,7 +1,7 @@
 module Tests exposing (..)
 
+import Bagles exposing (bagles, evaluate)
 import Expect
-import Main
 import Test exposing (..)
 
 
@@ -12,49 +12,49 @@ import Test exposing (..)
 all : Test
 all =
     describe "Bagles Test Suite"
-        [ test "compare_fermi" <|
+        [ test "evaluate_fermi" <|
             \_ ->
                 Expect.equal
                     (Just "FERMI")
-                    (Main.compare '1' 0 [ '1', '2', '3' ])
-        , test "compare_pico" <|
+                    (evaluate '1' 0 [ '1', '2', '3' ])
+        , test "evaluate_pico" <|
             \_ ->
                 Expect.equal
                     (Just "PICO")
-                    (Main.compare '1' 0 [ '3', '1', '2' ])
-        , test "compare_miss" <|
+                    (evaluate '1' 0 [ '3', '1', '2' ])
+        , test "evaluate_miss" <|
             \_ ->
                 Expect.equal
                     Nothing
-                    (Main.compare '9' 0 [ '3', '1', '2' ])
+                    (evaluate '9' 0 [ '3', '1', '2' ])
         , test "bagles1" <|
             \_ ->
                 Expect.equal
                     (Err "BAGLES")
-                    (Main.bagles "123" "456")
+                    (bagles "123" "456")
         , test "bagles2" <|
             \_ ->
                 Expect.equal
                     (Ok "You guessed it!")
-                    (Main.bagles "123" "123")
+                    (bagles "123" "123")
         , test "bagles3" <|
             \_ ->
                 Expect.equal
                     (Err "FERMI")
-                    (Main.bagles "123" "198")
+                    (bagles "123" "198")
         , test "bagles4" <|
             \_ ->
                 Expect.equal
                     (Err "PICO FERMI")
-                    (Main.bagles "234" "431")
+                    (bagles "234" "431")
         , test "bagles5" <|
             \_ ->
                 Expect.equal
                     (Err "FERMI")
-                    (Main.bagles "234" "531")
+                    (bagles "234" "531")
         , test "bagles6" <|
             \_ ->
                 Expect.equal
                     (Err "PICO PICO PICO")
-                    (Main.bagles "234" "423")
+                    (bagles "234" "423")
         ]

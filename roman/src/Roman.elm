@@ -1,4 +1,4 @@
-module Roman exposing (toArabic, toRoman)
+module Roman exposing (arabicToRoman, romanToArabic)
 
 import Regex
 
@@ -27,12 +27,12 @@ romanDivs =
     ]
 
 
-toRoman : String -> Result String String
-toRoman arabic =
+arabicToRoman : String -> Result String String
+arabicToRoman arabic =
     case String.toInt arabic of
         Just num ->
             if num > 0 && num < 4000 then
-                case toRomanHelper ( num, "" ) of
+                case arabicToRomanHelper ( num, "" ) of
                     Just ( _, roman ) ->
                         Ok roman
 
@@ -52,30 +52,27 @@ toRoman arabic =
             Err <| "\"" ++ arabic ++ "\" is not an integer"
 
 
-toRomanHelper : ( Int, String ) -> Maybe ( Int, String )
-toRomanHelper ( val, roman ) =
+arabicToRomanHelper : ( Int, String ) -> Maybe ( Int, String )
+arabicToRomanHelper ( val, roman ) =
     case List.head <| List.filter (\( num, _ ) -> val >= num) romanDivs of
         Just ( num, char ) ->
-            toRomanHelper ( val - num, roman ++ char )
+            arabicToRomanHelper ( val - num, roman ++ char )
 
         _ ->
             Just ( val, roman )
 
 
-toArabic : String -> Result String Int
-toArabic roman =
+romanToArabic : String -> Result String Int
+romanToArabic roman =
     let
         matches =
             Regex.find validRoman roman
     in
-    if String.isEmpty roman then
-        Err "Empty string"
-
-    else if List.length matches /= 1 then
+    if List.length matches /= 1 then
         Err <| "Invalid Roman numeral (" ++ roman ++ ")"
 
     else
-        case toArabicHelper ( 0, roman ) of
+        case romanToArabicHelper ( 0, roman ) of
             Just ( arabic, _ ) ->
                 Ok arabic
 
@@ -83,14 +80,14 @@ toArabic roman =
                 Err <| "Error parsing '" ++ roman ++ "'"
 
 
-toArabicHelper : ( Int, String ) -> Maybe ( Int, String )
-toArabicHelper ( val, rom ) =
+romanToArabicHelper : ( Int, String ) -> Maybe ( Int, String )
+romanToArabicHelper ( val, rom ) =
     case
         List.head <|
             List.filter (\( _, s ) -> String.startsWith s rom) romanDivs
     of
         Just ( num, char ) ->
-            toArabicHelper
+            romanToArabicHelper
                 ( val + num, String.dropLeft (String.length char) rom )
 
         _ ->
